@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 	"github.com/teris-io/shortid"
@@ -19,6 +20,11 @@ import (
 )
 
 var generator *shortid.Shortid
+
+// validate is shared by every caller on purpose: the validator caches struct
+// metadata internally, so building a new one per request throws that cache
+// away. It is safe for concurrent use.
+var validate = validator.New()
 
 const generatorSeed = 1000
 
@@ -55,6 +61,12 @@ func newClientError(err error, statusCode int, messageToUser string, additionalI
 		StatusCode:    statusCode,
 		IsClientError: true,
 	}
+}
+
+// ValidateStruct validates body against its `validate` tags and returns the
+// validation error, leaving the response to the caller.
+func ValidateStruct(body interface{}) error {
+	return validate.Struct(body)
 }
 
 func ParseBody(body io.Reader, out interface{}) error {

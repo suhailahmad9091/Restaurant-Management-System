@@ -5,9 +5,9 @@ import (
 	"RMS/middlewares"
 	"RMS/models"
 	"RMS/utils"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func CreateDish(w http.ResponseWriter, r *http.Request) {
@@ -19,9 +19,8 @@ func CreateDish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v := validator.New()
-	if err := v.Struct(body); err != nil {
-		utils.RespondError(w, http.StatusBadRequest, err, "input validation failed")
+	if valErr := utils.ValidateStruct(body); valErr != nil {
+		utils.RespondError(w, http.StatusBadRequest, valErr, "input validation failed")
 		return
 	}
 
@@ -76,6 +75,11 @@ func DishesByRestaurant(w http.ResponseWriter, r *http.Request) {
 
 	if parseErr := utils.ParseBody(r.Body, &body); parseErr != nil {
 		utils.RespondError(w, http.StatusBadRequest, parseErr, "failed to parse request body")
+		return
+	}
+
+	if valErr := utils.ValidateStruct(body); valErr != nil {
+		utils.RespondError(w, http.StatusBadRequest, valErr, "input validation failed")
 		return
 	}
 

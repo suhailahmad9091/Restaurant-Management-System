@@ -5,7 +5,6 @@ import (
 	"RMS/middlewares"
 	"RMS/models"
 	"RMS/utils"
-	"github.com/go-playground/validator/v10"
 	"net/http"
 )
 
@@ -21,9 +20,8 @@ func CreateSubAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v := validator.New()
-	if err := v.Struct(body); err != nil {
-		utils.RespondError(w, http.StatusBadRequest, err, "input validation failed")
+	if valErr := utils.ValidateStruct(body); valErr != nil {
+		utils.RespondError(w, http.StatusBadRequest, valErr, "input validation failed")
 		return
 	}
 
