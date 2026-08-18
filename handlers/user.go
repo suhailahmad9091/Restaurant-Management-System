@@ -6,10 +6,11 @@ import (
 	"RMS/middlewares"
 	"RMS/models"
 	"RMS/utils"
+	"net/http"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/sync/errgroup"
-	"net/http"
 )
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -158,17 +159,21 @@ func CalculateDistance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var eg errgroup.Group
-	var err error
 	var userCoordinates, restaurantCoordinates models.Coordinates
 
+	// Each goroutine keeps its own error. Sharing one `err` variable let both
+	// write it concurrently, which is a data race and could also hand the
+	// caller the wrong failure.
 	eg.Go(func() error {
-		userCoordinates, err = dbHelper.GetUserCoordinates(body.UserAddressID)
-		return err
+		var getErr error
+		userCoordinates, getErr = dbHelper.GetUserCoordinates(body.UserAddressID)
+		return getErr
 	})
 
 	eg.Go(func() error {
-		restaurantCoordinates, err = dbHelper.GetRestaurantCoordinates(body.RestaurantAddressID)
-		return err
+		var getErr error
+		restaurantCoordinates, getErr = dbHelper.GetRestaurantCoordinates(body.RestaurantAddressID)
+		return getErr
 	})
 
 	ergErr := eg.Wait()

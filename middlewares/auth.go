@@ -6,9 +6,10 @@ import (
 	"RMS/utils"
 	"context"
 	"errors"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"os"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type ContextKeys string
@@ -69,8 +70,6 @@ func Authenticate(next http.Handler) http.Handler {
 }
 
 func UserContext(r *http.Request) *models.UserCtx {
-	if user, ok := r.Context().Value(userContext).(*models.UserCtx); ok {
-		return user
-	}
-	return nil
+	user, _ := r.Context().Value(userContext).(*models.UserCtx)
+	return user
 }

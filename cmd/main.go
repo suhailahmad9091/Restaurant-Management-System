@@ -4,12 +4,13 @@ import (
 	"RMS/database"
 	"RMS/server"
 	"errors"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const shutDownTimeOut = 10 * time.Second
@@ -42,11 +43,11 @@ func main() {
 
 	logrus.Info("shutting down server")
 
-	if err := database.ShutdownDatabase(); err != nil {
-		logrus.WithError(err).Error("failed to close database connection")
+	if err := srv.Shutdown(shutDownTimeOut); err != nil {
+		logrus.WithError(err).Error("failed to gracefully shutdown server")
 	}
 
-	if err := srv.Shutdown(shutDownTimeOut); err != nil {
-		logrus.WithError(err).Panic("failed to gracefully shutdown server")
+	if err := database.ShutdownDatabase(); err != nil {
+		logrus.WithError(err).Error("failed to close database connection")
 	}
 }
