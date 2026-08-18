@@ -5,6 +5,7 @@ import (
 	"RMS/models"
 	"RMS/utils"
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"os"
@@ -44,9 +45,23 @@ func Authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		sessionID := claimValues["sessionId"].(string)
+		// A token signed with our key but carrying the wrong claim shapes is a
+		// bad token, not a server fault. Asserting these unchecked would panic
+		// into the recovery middleware and report 500.
+		userID, userIDOk := claimValues["userId"].(string)
+		sessionID, sessionIDOk := claimValues["sessionId"].(string)
+		role, roleOk := claimValues["role"].(string)
+		if !userIDOk || !sessionIDOk || !roleOk {
+			utils.RespondError(w, http.StatusUnauthorized, nil, "invalid token claims")
+			return
+		}
+
 		archivedAt, err := dbHelper.GetArchivedAt(sessionID)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				utils.RespondError(w, http.StatusUnauthorized, err, "invalid token")
+				return
+			}
 			utils.RespondError(w, http.StatusInternalServerError, err, "internal server error")
 			return
 		}
@@ -57,9 +72,9 @@ func Authenticate(next http.Handler) http.Handler {
 		}
 
 		user := &models.UserCtx{
-			UserID:    claimValues["userId"].(string),
+			UserID:    userID,
 			SessionID: sessionID,
-			Role:      models.Role(claimValues["role"].(string)),
+			Role:      models.Role(role),
 		}
 
 		ctx := context.WithValue(r.Context(), userContext, user)

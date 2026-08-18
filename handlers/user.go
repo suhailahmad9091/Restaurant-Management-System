@@ -6,6 +6,8 @@ import (
 	"RMS/middlewares"
 	"RMS/models"
 	"RMS/utils"
+	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
@@ -76,12 +78,11 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	userID, role, userErr := dbHelper.GetUserInfo(body)
 	if userErr != nil {
+		if errors.Is(userErr, dbHelper.ErrInvalidCredentials) {
+			utils.RespondError(w, http.StatusUnauthorized, userErr, "invalid email or password")
+			return
+		}
 		utils.RespondError(w, http.StatusInternalServerError, userErr, "failed to find user")
-		return
-	}
-
-	if userID == "" || role == "" {
-		utils.RespondError(w, http.StatusOK, nil, "user not found")
 		return
 	}
 
@@ -172,8 +173,11 @@ func CalculateDistance(w http.ResponseWriter, r *http.Request) {
 		return getErr
 	})
 
-	ergErr := eg.Wait()
-	if ergErr != nil {
+	if ergErr := eg.Wait(); ergErr != nil {
+		if errors.Is(ergErr, sql.ErrNoRows) {
+			utils.RespondError(w, http.StatusNotFound, ergErr, "address not found")
+			return
+		}
 		utils.RespondError(w, http.StatusInternalServerError, ergErr, "failed to get coordinates")
 		return
 	}

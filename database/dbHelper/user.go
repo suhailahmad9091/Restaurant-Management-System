@@ -4,8 +4,11 @@ import (
 	"RMS/database"
 	"RMS/models"
 	"RMS/utils"
-	"github.com/jmoiron/sqlx"
+	"database/sql"
+	"errors"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 func IsUserExists(email string) (bool, error) {
@@ -54,6 +57,11 @@ func CreateUserSession(userID string) (string, error) {
 	return sessionID, crtErr
 }
 
+// ErrInvalidCredentials is returned when the email is unknown or the password
+// does not match. Both cases share one error on purpose, so callers cannot
+// turn the login endpoint into a way of discovering registered emails.
+var ErrInvalidCredentials = errors.New("invalid credentials")
+
 func GetUserInfo(body models.LoginRequest) (string, models.Role, error) {
 	SQL := `SELECT u.id,
        			   u.role,
@@ -64,10 +72,13 @@ func GetUserInfo(body models.LoginRequest) (string, models.Role, error) {
 
 	var user models.LoginData
 	if getErr := database.RMS.Get(&user, SQL, body.Email); getErr != nil {
+		if errors.Is(getErr, sql.ErrNoRows) {
+			return "", "", ErrInvalidCredentials
+		}
 		return "", "", getErr
 	}
 	if passwordErr := utils.CheckPassword(body.Password, user.PasswordHash); passwordErr != nil {
-		return "", "", passwordErr
+		return "", "", ErrInvalidCredentials
 	}
 	return user.ID, user.Role, nil
 }
