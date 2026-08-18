@@ -1,5 +1,11 @@
 BEGIN;
 
+CREATE TYPE role_type AS ENUM (
+    'admin',
+    'sub-admin',
+    'user'
+    );
+
 CREATE TABLE IF NOT EXISTS users
 (
     id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
@@ -12,12 +18,6 @@ CREATE TABLE IF NOT EXISTS users
     archived_at TIMESTAMP WITH TIME ZONE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS unique_user ON users (email) WHERE archived_at IS NULL;
-
-CREATE TYPE role_type AS ENUM (
-    'admin',
-    'sub-admin',
-    'user'
-    );
 
 CREATE TABLE IF NOT EXISTS user_session
 (
